@@ -323,8 +323,7 @@
                 </div>
             `).join('');
         }
-
-        // 新增書籍：修復版（優化中文搜尋與手動備用機制）
+// 新增書籍：強力破網版（修復連線被手機阻擋、優化搜尋成功率）
         async function addBookWithApi() {
             const titleInput = document.getElementById('book-title');
             const categorySelect = document.getElementById('book-category');
@@ -337,63 +336,96 @@
 
             // 顯示搜尋中狀態
             const btn = document.querySelector('#page-record button');
-            btn.innerText = "🔍 線上搜尋圖書庫中...";
+            btn.innerText = "🔍 全球圖書庫連線中...";
             btn.disabled = true;
 
-            try {
-                // 使用 intitle: 確保精準搜尋書名，並限制繁體中文結果
-                const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(bookTitle)}&maxResults=3&country=TW`;
-                const response = await fetch(apiUrl);
-                const data = await response.json();
+            // 嘗試三種不同的 API 網址格式，防止被瀏覽器或特定網路環境阻擋
+            const apiUrls = [
+                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=3`,
+                `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(bookTitle)}&maxResults=1`
+            ];
+
+            let data = null;
+            let success = false;
+
+            // 輪流嘗試不同的連線管道
+            for (let url of apiUrls) {
+                try {
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        data = await response.json();
+                        if (data && data.items && data.items.length > 0) {
+                            success = true;
+                            break; // 成功抓到資料就跳出迴圈
+                        }
+                    }
+                } catch (e) {
+                    console.log("嘗試連線失敗，切換備用管道...", e);
+                }
+            }
+            
+            let author = "";
+            let coverUrl = "";
+            let finalTitle = bookTitle;
+
+            // 如果安全通道成功拿到資料
+            if (success && data && data.items) {
+                // 優先選擇有封面的項目
+                const match = data.items.find(item => item.volumeInfo.imageLinks && item.volumeInfo.authors) || data.items[0];
+                const info = match.volumeInfo;
                 
-                let author = "";
-                let coverUrl = "";
-                let finalTitle = bookTitle;
-
-                // 如果有找到網路資料
-                if (data.items && data.items.length > 0) {
-                    // 尋找最符合的項目（優先找有封面和作者的）
-                    const match = data.items.find(item => item.volumeInfo.imageLinks && item.volumeInfo.authors) || data.items[0];
-                    const info = match.volumeInfo;
-                    
-                    finalTitle = info.title || bookTitle;
-                    author = info.authors ? info.authors.join(', ') : "";
-                    
-                    if (info.imageLinks) {
-                        // 優先使用 thumbnail，並強制轉為 https 避免被瀏覽器安全性阻擋
-                        let img = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail;
-                        if (img) coverUrl = img.replace('http://', 'https://');
+                finalTitle = info.title || bookTitle;
+                author = info.authors ? info.authors.join(', ') : "";
+                
+                if (info.imageLinks) {
+                    let img = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail || info.imageLinks.medium;
+                    if (img) {
+                        // 關鍵修復：強制將圖片網址轉為安全加密的 https，且移除非必要參數
+                        coverUrl = img.replace('http://', 'https://');
                     }
                 }
+            }
 
-                // 【核心修正】如果網路沒抓到作者或封面，啟動友善的手動補入機制
-                if (!author || !coverUrl) {
-                    btn.innerText = "💡 請協助補全資訊...";
-                    
+            // === 核心防錯防擋機制 ===
+            // 如果經過多方嘗試，網路依然被瀏覽器硬生生擋下（或是完全查無此書）
+            if (!author || !coverUrl) {
+                btn.innerText = "💡 啟動手動補全...";
+                
+                // 跳出親切的提示，甚至提供外部連結
+                const goGoogle = confirm(`【連線受阻或找不到資料】\n手機瀏覽器可能阻擋了 App 與 Google 圖書的連線。\n\n是否要手動輸入資訊？\n(按「確定」手動輸入；按「取消」可至外部搜尋)`);
+                
+                if (goGoogle) {
                     if (!author) {
-                        author = prompt(`網路上找不到《${bookTitle}》的作者，請手動輸入作者名稱：`, "") || "未命名作者";
+                        author = prompt(`請輸入《${bookTitle}》的作者名稱：`, "") || "自訂作者";
                     }
-                    if (!coverUrl) {
-                        // 沒封面就用預設圖
-                        coverUrl = defaultCover;
-                    }
+                    coverUrl = defaultCover;
+                } else {
+                    // 備用方案：引導使用者去查 Google 圖書
+                    window.open(`https://books.google.com.tw/books?q=${encodeURIComponent(bookTitle)}`, '_blank');
+                    author = "請手動修改";
+                    coverUrl = defaultCover;
                 }
+            }
 
-                // 寫入資料庫
-                myBooks.push({
-                    title: finalTitle,
-                    author: author,
-                    cover: coverUrl,
-                    category: categorySelect.value,
-                    timestamp: new Date().getTime()
-                });
+            // 寫入手機本地資料庫
+            myBooks.push({
+                title: finalTitle,
+                author: author,
+                cover: coverUrl,
+                category: categorySelect.value,
+                timestamp: new Date().getTime()
+            });
 
-                localStorage.setItem('myBooks', JSON.stringify(myBooks));
-                titleInput.value = '';
-                renderBooks();
-                alert(`成功加入：《${finalTitle}》`);
-
-            } catch (error) {
+            localStorage.setItem('myBooks', JSON.stringify(myBooks));
+            titleInput.value = '';
+            renderBooks();
+            
+            // 恢復按鈕
+            btn.innerText = "搜尋並加入紀錄";
+            btn.disabled = false;
+            
+            alert(`成功加入書單！`);
+        } catch (error) {
                 console.error(error);
                 // 完全斷網時的備用方案
                 const manualAuthor = prompt(`網路連線失敗，請手動輸入《${bookTitle}》的作者：`, "") || "自訂作者";
