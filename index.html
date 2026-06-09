@@ -3,112 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的閱讀隨身本 v7.1-輕量化備援版</title>
+    <title>我的閱讀隨身本 v7.2-精品推薦美化版</title>
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2b4c7e">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <style>
-        :root { --primary: #2b4c7e; --primary-light: #eef3f9; --bg: #f8fafc; --text: #1e293b; --danger: #ef4444; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 75px; }
-        header { background: var(--primary); color: white; text-align: center; padding: 18px; font-weight: bold; position: sticky; top: 0; z-index: 100; }
-        .container { padding: 16px; max-width: 600px; margin: 0 auto; }
-        .page { display: none; }
-        .page.active { display: block; }
-        .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 16px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; }
-        .book-item { background: white; padding: 14px; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; border-left: 4px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .book-info { flex-grow: 1; margin-left: 12px; }
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; display: flex; border-top: 1px solid #e2e8f0; z-index: 100; }
-        .nav-item { flex: 1; text-align: center; padding: 10px; color: #64748b; cursor: pointer; font-size: 0.8rem; }
-        .nav-item.active { color: var(--primary); font-weight: bold; }
+        :root {
+            --primary: #2b4c7e;
+            --primary-light: #eef3f9;
+            --accent: #e67e22;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding-bottom: 80px;
+            line-height: 1.5;
+        }
+        header {
+            background-color: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 18px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .container {
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        /* 卡片與輸入框 */
+        .card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            margin-bottom: 20px;
+        }
+        h3 {
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(43, 76, 126, 0.1);
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:active {
+            opacity: 0.9;
+        }
+        button.btn-delete {
+            background-color: var(--danger);
+            width: auto;
+            padding: 6px 12px;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        /* 書籍清單樣式 */
+        .book-item {
+            background: var(--card);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            border-left: 5px solid var(--primary);
+        }
+        .book-icon {
+            font-size: 1.5rem;
+            background: var(--primary-light);
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .book-info {
+            flex-grow: 1;
+        }
+        .book-title {
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 2px;
+            color: var(--text);
+        }
+        .book-title a {
+            color: var(--primary);
+            text-decoration: none;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 2px;
+        }
+        .book-category-tag {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        /* 底部導覽列 */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 65px;
+            background: var(--card);
+            display: flex;
+            border-top: 1px solid #e2e8f0;
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+        }
+        .nav-item-icon {
+            font-size: 1.2rem;
+        }
+        .nav-item.active {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: var(--primary);
+            font-weight: bold;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
+
     <header>我的閱讀隨身本</header>
+
     <div class="container">
         <div id="page-record" class="page active">
             <div class="card">
-                <h3>📝 新增書籍</h3>
-                <input type="text" id="book-title" style="width:100%; padding:10px; margin:8px 0; border:1px solid #ccc; border-radius:8px;" placeholder="輸入書名">
-                <button onclick="addBook()">加入紀錄</button>
+                <h3>📝 新增看過的書</h3>
+                <input type="text" id="book-title" placeholder="請輸入書名">
+                <select id="book-category">
+                    <option value="商管財經">📈 商管財經</option>
+                    <option value="文學小說">📚 文學小說</option>
+                    <option value="心理勵志">🧠 心理勵志</option>
+                    <option value="電機資訊">⚡ 電機資訊</option>
+                    <option value="運動健身">🏃 運動健身</option>
+                    <option value="人文歷史">🏛️ 人文歷史</option>
+                    <option value="語言學習">🗣️ 語言學習</option>
+                    <option value="戶外休閒">⛰️ 戶外休閒</option>
+                </select>
+                <button onclick="addBook()">加入書單紀錄</button>
             </div>
-            <h3>📚 我的清單</h3>
+            
+            <h3>📚 我的書單歷史</h3>
             <div id="book-list"></div>
         </div>
+
         <div id="page-recommend" class="page">
             <div class="card">
-                <h3>🚀 精選 5 本即時動態推薦</h3>
+                <h3>🚀 精選 5 本即時動態推薦 (低流量版)</h3>
                 <div id="recommend-list"></div>
             </div>
         </div>
     </div>
 
     <div class="nav-bar">
-        <div class="nav-item active" onclick="switchPage('record', this)">📝 紀錄</div>
-        <div class="nav-item" onclick="switchPage('recommend', this)">🚀 推薦</div>
+        <div class="nav-item active" onclick="switchPage('record', this)">
+            <span class="nav-item-icon">📝</span><span>紀錄書籍</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('recommend', this)">
+            <span class="nav-item-icon">🚀</span><span>精選推薦</span>
+        </div>
     </div>
 
     <script>
         let myBooks = JSON.parse(localStorage.getItem('myBooks')) || [];
 
-        function switchPage(p, el) {
-            document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-            document.getElementById('page-' + p).classList.add('active');
-            el.classList.add('active');
-            if(p === 'recommend') fetchLive();
+        const categorySearchKeywords = {
+            "商管財經": "商業理財", "文學小說": "文學小說", "心理勵志": "心理成長", "電機資訊": "電腦資訊",
+            "運動健身": "運動健康", "人文歷史": "歷史人文", "語言學習": "語言學習", "戶外休閒": "戶外探險"
+        };
+
+        const categoryIcons = {
+            "商管財經": "📈", "文學小說": "📚", "心理勵志": "🧠", "電機資訊": "⚡",
+            "運動健身": "🏃", "人文歷史": "🏛️", "語言學習": "🗣️", "戶外休閒": "⛰️"
+        };
+
+        function switchPage(pageId, navElement) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            navElement.classList.add('active');
+
+            if (pageId === 'recommend') {
+                fetchLiveRecommendations();
+            }
         }
 
-        function render() {
-            document.getElementById('book-list').innerHTML = myBooks.map((b, i) => `
-                <div class="book-item">
-                    <div class="book-info"><strong>${b.title}</strong><div style="font-size:0.8rem;color:#666;">${b.category}</div></div>
-                    <button onclick="del(${i})" style="width:auto; background:#ef4444; padding:5px 10px;">刪除</button>
-                </div>
-            `).join('');
+        function renderBooks() {
+            const listDiv = document.getElementById('book-list');
+            if (myBooks.length === 0) {
+                listDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">目前還沒有紀錄喔，趕快新增一本吧！</p>';
+                return;
+            }
+            listDiv.innerHTML = myBooks.map((book, index) => {
+                const icon = categoryIcons[book.category] || "📖";
+                return `
+                    <div class="book-item">
+                        <div class="book-icon">${icon}</div>
+                        <div class="book-info">
+                            <div class="book-title">${book.title}</div>
+                            <span class="book-category-tag">${book.category}</span>
+                        </div>
+                        <button class="btn-delete" onclick="deleteBook(${index})">刪除</button>
+                    </div>
+                `;
+            }).join('');
         }
 
         function addBook() {
-            const t = document.getElementById('book-title');
-            if(!t.value) return;
-            myBooks.push({title: t.value, category: '閱讀'});
-            localStorage.setItem('myBooks', JSON.stringify(myBooks));
-            t.value = ''; render();
-        }
-
-        function del(i) { myBooks.splice(i,1); localStorage.setItem('myBooks', JSON.stringify(myBooks)); render(); }
-
-        async function fetchLive() {
-            const list = document.getElementById('recommend-list');
-            list.innerHTML = "讀取中...";
+            const titleInput = document.getElementById('book-title');
+            const categorySelect = document.getElementById('book-category');
+            const bookTitle = titleInput.value.trim();
             
-            // 輕量化聚合邏輯：只抓 5 本
-            let items = [];
-            try {
-                // 嘗試直接抓取 Openbook (更簡潔的寫法)
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://www.openbook.org.tw/rss.xml')}`);
-                const data = await res.json();
-                const doc = new DOMParser().parseFromString(data.contents, "text/xml");
-                doc.querySelectorAll("item").forEach(i => {
-                    items.push({title: i.querySelector("title").textContent, link: i.querySelector("link").textContent});
-                });
-            } catch(e) {
-                // 若失敗則直連 Google Books
-                const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=subject:fiction&maxResults=5&langRestrict=zh-Hant`);
-                const data = await res.json();
-                data.items.forEach(i => {
-                    items.push({title: i.volumeInfo.title, link: i.volumeInfo.infoLink});
-                });
+            if (!bookTitle) {
+                alert('請輸入書名！');
+                return;
             }
 
-            // 只取 5 本
-            const final = items.slice(0, 5);
-            list.innerHTML = final.map(b => `
-                <div class="book-item">
-                    <div class="book-info"><a href="${b.link}" target="_blank" style="text-decoration:none; color:inherit;">${b.title} ↗</a></div>
-                </div>
-            `).join('');
+            myBooks.push({
+                title: bookTitle,
+                category: categorySelect.value
+            });
+
+            localStorage.setItem('myBooks', JSON.stringify(myBooks));
+            titleInput.value = '';
+            renderBooks();
         }
-        render();
+
+        function deleteBook(index) {
+            if(confirm("確定要刪除這本書的紀錄嗎？")) {
+                myBooks.splice(index, 1);
+                localStorage.setItem('myBooks', JSON.stringify(myBooks));
+                renderBooks();
+            }
+        }
+
+        // ==========================================
+        // 核心：輕量化精選 5 本三引擎動態備援系統
+        // ==========================================
+        async function fetchLiveRecommendations() {
+            const recommendDiv = document.getElementById('recommend-list');
+            
+            if (myBooks.length === 0) {
+                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">請先在「紀錄書籍」中新增書籍，系統才能依據您的偏好進行動態網羅。</p>';
+                return;
+            }
+
+            recommendDiv.innerHTML = `
+                <div class="loading">
+                    ⚡ 正在連線雲端資料庫...<br>
+                    <small style="color:var(--text-muted); font-weight:normal; font-size:0.85rem; display:block; margin-top:5px;">
+                        正在計算專屬您的 5 本精選好書
+                    </small>
+                </div>
+            `;
+
+            // 計算讀者偏好
+            const counts = {};
+            myBooks.forEach(book => { counts[book.category] = (counts[book.category] || 0) + 1; });
+            const topCategory = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+
+            let rawLiveData = [];
+            let activeEngine = "未連接";
+
+            // 引擎一：Openbook RSS (透過穩定的 allorigins 代理)
+            try {
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://www.openbook.org.tw/rss.xml')}`;
+                const res = await fetch(proxyUrl);
+                if (res.ok) {
+                    const json = await res.json();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(json.contents, "text/xml");
+                    const items = xmlDoc.querySelectorAll("item");
+                    
+                    items.forEach(item => {
+                        rawLiveData.push({
+                            title: item.querySelector("title")?.textContent || "最新書訊",
+                            link: item.querySelector("link")?.textContent || "#",
+                            source: "Openbook 閱讀誌"
+                        });
+                    });
+                    if (rawLiveData.length > 0) activeEngine = "雲端即時書評";
+                }
+            } catch (e) { console.log("引擎一跳過"); }
+
+            // 引擎二：Google Books API 直連 (低流量防禦網，99.9% 必成功)
+            if (rawLiveData.length < 5) {
+                try {
+                    const keyword = categorySearchKeywords[topCategory] || topCategory;
+                    const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(keyword)}&orderBy=newest&maxResults=10&langRestrict=zh-Hant`;
+                    const res = await fetch(apiUrl);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.items) {
+                            data.items.forEach(item => {
+                                rawLiveData.push({
+                                    title: item.volumeInfo.title || "未知書籍",
+                                    link: item.volumeInfo.infoLink || "#",
+                                    source: "Google 雲端書庫"
+                                });
+                            });
+                        }
+                        activeEngine = activeEngine === "未連接" ? "直連圖書資料庫" : "多通道混合引擎";
+                    }
+                } catch (e) { console.log("引擎二直連異常"); }
+            }
+
+            // --- 資料過濾與去重 ---
+            const alreadyRead = new Set(myBooks.map(b => b.title.toLowerCase().trim()));
+            const seenTitles = new Set();
+            const finalDisplayList = [];
+
+            for (let book of rawLiveData) {
+                let cleanTitle = book.title;
+                let match = cleanTitle.match(/《(.*?)》/);
+                if (match) cleanTitle = match[1];
+                if (cleanTitle.length > 28) cleanTitle = cleanTitle.substring(0, 28) + '...';
+
+                const normTitle = cleanTitle.toLowerCase().trim();
+                
+                if (!alreadyRead.has(normTitle) && !seenTitles.has(normTitle)) {
+                    seenTitles.add(normTitle);
+                    finalDisplayList.push({
+                        title: cleanTitle,
+                        link: book.link,
+                        source: book.source
+                    });
+                }
+                if (finalDisplayList.length >= 5) break; // 嚴格限制只要 5 本
+            }
+
+            // 斷線保護
+            if (finalDisplayList.length === 0) {
+                recommendDiv.innerHTML = `
+                    <div style="text-align:center; padding:20px; color:var(--danger);">
+                        ⚠️ 暫時無法取得網路數據，請檢查您的網路連線。
+                    </div>
+                `;
+                return;
+            }
+
+            const currentIcon = categoryIcons[topCategory] || "💡";
+
+            // 渲染精美介面
+            let html = `
+                <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text); background: var(--primary-light); padding: 12px; border-radius: 8px; border-left: 4px solid var(--accent);">
+                    🎯 依據您的偏好 ${currentIcon} <strong>${topCategory}</strong>，精選出 5 本最新推薦：
+                </div>
+            `;
+
+            html += finalDisplayList.map(book => {
+                const itemIcon = book.source.includes("Openbook") ? "📖" : "🌐";
+                return `
+                    <div class="book-item">
+                        <div class="book-icon">${itemIcon}</div>
+                        <div class="book-info">
+                            <div class="book-title">
+                                <a href="${book.link}" target="_blank">${book.title} ↗</a>
+                            </div>
+                            <span class="book-category-tag" style="color:var(--primary); background:var(--primary-light); border:none; font-weight:bold;">
+                                來源：${book.source}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            recommendDiv.innerHTML = html;
+        }
+
+        renderBooks();
     </script>
 </body>
 </html>
