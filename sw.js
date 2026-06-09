@@ -1,4 +1,4 @@
-const CACHE_NAME = 'book-app-v6'; // 
+const CACHE_NAME = 'book-app-v8'; // 
 const ASSETS = [
   'index.html',
   'manifest.json'
