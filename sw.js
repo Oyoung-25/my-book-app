@@ -1,11 +1,28 @@
-const CACHE_NAME = 'book-app-v1';
+const CACHE_NAME = 'book-app-v2'; // 👈 這裡改成 v2，用來強制沖刷手機快取
 const ASSETS = [
   'index.html',
   'manifest.json'
 ];
 
 self.addEventListener('install', e => {
+  // 當偵測到新版本，立刻接管網頁，不用等使用者下次關閉重開
+  self.skipWaiting();
   e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+});
+
+self.addEventListener('activate', e => {
+  // 啟動時自動刪除舊的 v1 快取資料
+  e.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    })
+  );
 });
 
 self.addEventListener('fetch', e => {
