@@ -1,4 +1,4 @@
-const CACHE_NAME = 'book-app-v3'; // 👈 這裡改成 v2，用來強制沖刷手機快取
+const CACHE_NAME = 'book-app-v5'; // 
 const ASSETS = [
   'index.html',
   'manifest.json'

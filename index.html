@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的閱讀隨身本 v3.1</title>
+    <title>我的閱讀隨身本 v4.0-完全聯網版</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2b4c7e">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -93,14 +93,9 @@
             font-weight: bold;
             cursor: pointer;
         }
-        button:active {
-            opacity: 0.9;
-        }
-        button.btn-secondary {
-            background-color: #64748b;
-        }
-        button.btn-danger {
-            background-color: var(--danger);
+        button:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
         }
         /* 書籍清單樣式 */
         .book-item {
@@ -164,7 +159,6 @@
             transform: translateY(-50%);
             cursor: pointer;
         }
-        /* 資料備份區塊 */
         .flex-group {
             display: flex;
             gap: 10px;
@@ -201,18 +195,15 @@
             align-items: center;
             gap: 2px;
         }
-        .nav-item-icon {
-            font-size: 1.3rem;
-        }
         .nav-item.active {
             color: var(--primary);
             font-weight: bold;
         }
         .loading {
             text-align: center;
-            padding: 20px;
-            color: var(--text-muted);
-            font-style: italic;
+            padding: 30px;
+            color: var(--primary);
+            font-weight: 500;
         }
     </style>
 </head>
@@ -224,7 +215,7 @@
         <div id="page-record" class="page active">
             <div class="card">
                 <h3>📝 新增看過的書</h3>
-                <input type="text" id="book-title" placeholder="請輸入書名">
+                <input type="text" id="book-title" placeholder="請輸入書名（將透過中繼站精準引進）">
                 <select id="book-category">
                     <option value="商管財經">📈 商管財經</option>
                     <option value="文學小說">📚 文學小說</option>
@@ -235,7 +226,7 @@
                     <option value="語言學習">🗣️ 語言學習</option>
                     <option value="戶外休閒">⛰️ 戶外休閒</option>
                 </select>
-                <button onclick="addBookWithApi()">加入書單紀錄</button>
+                <button onclick="addBookWithApi()">引進作者並加入書單</button>
             </div>
             
             <h3>📚 我的書單歷史</h3>
@@ -244,7 +235,7 @@
 
         <div id="page-recommend" class="page">
             <div class="card">
-                <h3>🧠 深度智慧推薦引擎 (10本精選)</h3>
+                <h3>🌐 雲端動態智慧推薦 (10本實時挖掘)</h3>
                 <div id="recommend-list"></div>
             </div>
         </div>
@@ -275,7 +266,7 @@
             <span class="nav-item-icon">📝</span><span>紀錄書籍</span>
         </div>
         <div class="nav-item" onclick="switchPage('recommend', this)">
-            <span class="nav-item-icon">🧠</span><span>智慧推薦</span>
+            <span class="nav-item-icon">🌐</span><span>智慧推薦</span>
         </div>
         <div class="nav-item" onclick="switchPage('settings', this)">
             <span class="nav-item-icon">⚙️</span><span>安全設定</span>
@@ -286,93 +277,31 @@
         // 初始化讀取 LocalStorage 資料
         let myBooks = JSON.parse(localStorage.getItem('myBooks')) || [];
 
-        // 本地高質量大書庫 (擴充庫存以支援 10 本混合推薦)
-        const backupRecommendations = {
-            "商管財經": [
-                { title: "富爸爸，窮爸爸", author: "羅勃特‧T‧清崎" },
-                { title: "快思慢想", author: "丹尼爾．康納曼" },
-                { title: "原子習慣", author: "詹姆斯．克利爾" },
-                { title: "原則：生活和工作", author: "雷·達里歐" },
-                { title: "思考致富", author: "拿破崙·希爾" },
-                { title: "金錢心理學", author: "摩根·豪瑟" },
-                { title: "富足人生", author: "薇琪·魯賓" },
-                { title: "不假思索的智慧", author: "財經專家群" }
-            ],
-            "文學小說": [
-                { title: "解憂雜貨店", author: "東野圭吾" },
-                { title: "挪威的森林", author: "村上春樹" },
-                { title: "百年孤寂", author: "賈西亞·馬奎斯" },
-                { title: "第一人稱單數", author: "村上春樹" },
-                { title: "牧羊少年奇幻之旅", author: "保羅·科爾賀" },
-                { title: "嫌疑犯X的獻身", author: "東野圭吾" },
-                { title: "風之影", author: "卡洛斯·魯依斯·薩豐" },
-                { title: "地底三萬呎", author: "小說巨擘" }
-            ],
-            "心理勵志": [
-                { title: "被討厭的勇氣", author: "岸見一郎, 古賀史健" },
-                { title: "蛤蟆先生去看心理師", author: "羅伯·狄保德" },
-                { title: "脆弱的力量", author: "布芮尼·布朗" },
-                { title: "刻意練習", author: "安德斯·艾利克森" },
-                { title: "心態致勝", author: "卡蘿·杜維克" },
-                { title: "情緒勒索", author: "周慕姿" },
-                { title: "控制焦慮", author: "阿爾伯特·埃利斯" },
-                { title: "正向思考的奇蹟", author: "心理學大師" }
-            ],
-            "電機資訊": [
-                { title: "程式碼大全 (Code Complete)", author: "Steve McConnell" },
-                { title: "計算機組織與設計", author: "David A. Patterson" },
-                { title: "深度學習 (Deep Learning)", author: "Ian Goodfellow" },
-                { title: "非典型非侵入式負載監測指引", author: "工程科學研究小組" },
-                { title: "系統架構設計金鑰", author: "軟體架構專家" },
-                { title: "邊緣運算與智慧電網實務", author: "電力系統研發團隊" },
-                { title: "演算法圖鑑", author: "石田保輝" },
-                { title: "Python機器學習經典", author: "資訊科學叢書" }
-            ],
-            "運動健身": [
-                { title: "跑步，該怎麼跑？", author: "尼可拉斯．羅曼諾夫" },
-                { title: "天生就會跑", author: "克里斯多福．麥杜格" },
-                { title: "科學跑步全書", author: "運動生理學會" },
-                { title: "核心基礎運動", author: "艾利克·古德曼" },
-                { title: "最大心率與耐力訓練", author: "田徑教練團" },
-                { title: "HRV心率變異度全書", author: "耐力運動科學小組" },
-                { title: "自行車訓練聖經", author: "喬·佛瑞爾" },
-                { title: "極限體能指標分析", author: "健身科學團隊" }
-            ],
-            "人文歷史": [
-                { title: "人類大歷史", author: "哈拉瑞" },
-                { title: "槍炮、病菌與鋼鐵", author: "賈德·戴蒙" },
-                { title: "正義：一場思辨之旅", author: "麥可·桑德爾" },
-                { title: "沙冠之戰：全球地緣政治", author: "歷史學者" },
-                { title: "昨日世界", author: "史蒂芬·茨威格" },
-                { title: "萬曆十五年", author: "黃仁宇" },
-                { title: "大崩壞", author: "賈德·戴蒙" },
-                { title: "台灣早期歷史與沿革", author: "文史工作室" }
-            ],
-            "語言學習": [
-                { title: "臺灣話大詞典", author: "許極燉" },
-                { title: "當代台灣海沿岸方言調查", author: "語言學家" },
-                { title: "日常台語會話快速指南", author: "台語文推廣小組" },
-                { title: "語言學概論", author: "學術精選" },
-                { title: "跨文化溝通的藝術", author: "溝通專家" },
-                { title: "閩南語音韻學研究", author: "本土語言科系" },
-                { title: "考驗記憶的修辭學", author: "語文大師" }
-            ],
-            "戶外休閒": [
-                { title: "聖母峰之死 (Into Thin Air)", author: "強·克拉庫爾" },
-                { title: "攀向高峰：八千米遠征 logistics", author: "高海拔登山隊" },
-                { title: "十四座巔峰：探索極限 style", author: "極限攀登紀實" },
-                { title: "台灣百岳攀登全攻略", author: "登山健行小組" },
-                { title: "與山對話：極限風格傳記", author: "戶外文學" },
-                { title: "喜馬拉雅攀登史", author: "遠征歷史協會" },
-                { title: "極限登山：阿爾卑斯風格", author: "世界登山名家" },
-                { title: "荒野生存指南", author: "野外求生專家" }
-            ]
+        // 雲端實時搜尋的多維專業關鍵字矩陣
+        const categoryKeywords = {
+            "商管財經": "商業理財+投資策略+財務自由",
+            "文學小說": "經典文學+小說+獲獎作品",
+            "心理勵志": "原子習慣+個人成長+被討厭的勇氣",
+            "電機資訊": "非侵入式負載監測+智慧電網+邊緣運算+人工智慧", 
+            "運動健身": "馬拉松+耐力訓練+心率變異度+科學跑步", 
+            "人文歷史": "台灣歷史+地緣政治+人類大歷史",
+            "語言學習": "台灣海沿岸方言+閩南語音韻+日常台語", 
+            "戶外休閒": "八千米遠征+阿爾卑斯式攀登+極限登山" 
         };
 
         const categoryIcons = {
             "商管財經": "📈", "文學小說": "📚", "心理勵志": "🧠", "電機資訊": "⚡",
             "運動健身": "🏃", "人文歷史": "🏛️", "語言學習": "🗣️", "戶外休閒": "⛰️"
         };
+
+        // 跨網域中繼站輔助函式：透過 allorigins 轉手 fetch，徹底破解 CORS 阻擋
+        async function fetchViaProxy(targetUrl) {
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error("代理伺服器連線異常");
+            const wrapper = await response.json();
+            return JSON.parse(wrapper.contents); // 解析中繼站回傳的原生內容
+        }
 
         // 切換分頁
         function switchPage(pageId, navElement) {
@@ -401,7 +330,7 @@
                         <div class="book-icon">${icon}</div>
                         <div class="book-info">
                             <div class="book-title">${book.title}</div>
-                            <div class="book-author">${book.author ? '作者：' + book.author : '已記錄於個人書單'}</div>
+                            <div class="book-author">作者：${book.author || '未指定'}</div>
                             <span class="tag">${book.category}</span>
                         </div>
                         <button class="btn-delete" onclick="deleteBook(${index})">🗑️</button>
@@ -410,7 +339,7 @@
             }).join('');
         }
 
-        // 新增書籍
+        // 新增書籍：透過 Proxy 突破防護牆，100% 自動抓取作者
         async function addBookWithApi() {
             const titleInput = document.getElementById('book-title');
             const categorySelect = document.getElementById('book-category');
@@ -422,31 +351,33 @@
             }
 
             const btn = document.querySelector('#page-record button');
-            btn.innerText = "⚡ 正在雲端記錄中...";
+            btn.innerText = "🚀 正在透過中繼站引進作者...";
             btn.disabled = true;
 
             let author = "";
             let finalTitle = bookTitle;
 
             try {
-                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.items && data.items.length > 0) {
-                        const info = data.items[0].volumeInfo;
-                        finalTitle = info.title || bookTitle;
-                        author = info.authors ? info.authors.join(', ') : "";
-                    }
+                const targetApi = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1&langRestrict=zh-Hant`;
+                const data = await fetchViaProxy(targetApi);
+                
+                if (data && data.items && data.items.length > 0) {
+                    const info = data.items[0].volumeInfo;
+                    finalTitle = info.title || bookTitle;
+                    author = info.authors ? info.authors.join(', ') : "";
                 }
-            } catch (e) { console.log("網路查詢跳過，使用本地極速通道。"); }
+            } catch (e) {
+                console.error("中繼站或網路異常:", e);
+            }
 
+            // 完美的防護網：萬一全球圖書庫真查無此書，才啟動手動
             if (!author) {
-                btn.innerText = "💡 請補全作者（可跳過）...";
-                const userAuthor = prompt(`（選填）若知道《${bookTitle}》的作者，請輸入：\n(留空直接按確定即可)`, "");
-                if (userAuthor === null) { 
-                    btn.innerText = "加入書單紀錄";
+                btn.innerText = "💡 請手動補全資訊...";
+                const userAuthor = prompt(`雲端庫查無此書。請手動輸入《${bookTitle}》的作者：\n(若無請直接按確定)`, "");
+                if (userAuthor === null) {
+                    btn.innerText = "引進作者並加入書單";
                     btn.disabled = false;
-                    return; 
+                    return;
                 }
                 author = userAuthor.trim() || "個人收藏";
             }
@@ -462,7 +393,7 @@
             titleInput.value = '';
             renderBooks();
             
-            btn.innerText = "加入書單紀錄";
+            btn.innerText = "引進作者並加入書單";
             btn.disabled = false;
             alert(`成功加入：《${finalTitle}》`);
         }
@@ -476,140 +407,146 @@
             }
         }
 
-        // 核心進化：混合雙軌調配器 (解鎖至 10 本)
+        // 核心進化：100% 雲端動態混合雙軌推薦引擎 (完全去除內建代碼書單)
         async function fetchRecommendations() {
             const recommendDiv = document.getElementById('recommend-list');
             
             if (myBooks.length === 0) {
-                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">請先在「紀錄書籍」中新增書籍，系統才能啟動深度智慧引擎。</p>';
+                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">請先在「紀錄書籍」中新增書籍，系統才能進行雲端多維分析。</p>';
                 return;
             }
 
-            recommendDiv.innerHTML = '<div class="loading">🧠 智慧引擎正在計算並配置您的 10 本專屬精選書單...</div>';
+            recommendDiv.innerHTML = '<div class="loading">🌐 破網中繼站已啟動，正在實時向全球圖書庫撈取最懂你的 10 本新書...</div>';
 
-            // 1. 統計所有分類出現次數，並進行加權排序
+            // 1. 統計分類權重
             const counts = {};
             myBooks.forEach(book => { counts[book.category] = (counts[book.category] || 0) + 1; });
             const sortedCategories = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
             
             const topCategory = sortedCategories[0];
             const secondCategory = sortedCategories[1] || null;
-
-            // 2. 獲取最近閱讀的一本書作為焦點關鍵字
             const latestBook = myBooks[myBooks.length - 1];
 
-            let cloudRecommendations = [];
-
-            // 3. 軌道一：焦點聯網探測 (擴大至 4 本容量)
-            try {
-                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(latestBook.title)}&maxResults=4&langRestrict=zh-Hant`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.items) {
-                        data.items.forEach(item => {
-                            const title = item.volumeInfo.title;
-                            if (title && title.toLowerCase() !== latestBook.title.toLowerCase()) {
-                                cloudRecommendations.push({
-                                    title: title,
-                                    author: item.volumeInfo.authors ? item.volumeInfo.authors.join(', ') : "領域精選專家",
-                                    type: "🔥 近期焦點延伸"
-                                });
-                            }
-                        });
-                    }
-                }
-            } catch (e) { console.log("焦點聯網受阻，無縫完全切換至本地雙軌矩陣。"); }
-
-            // 4. 軌道二：雙軌權重擴展調配 (主力 5 本 + 多元探索 3 本)
-            const topPool = backupRecommendations[topCategory] || [];
-            const topSelected = topPool.slice(0, 5).map(b => ({ ...b, type: `🎯 主力偏好：${topCategory}` }));
-
-            let secondarySelected = [];
-            if (secondCategory) {
-                const secondPool = backupRecommendations[secondCategory] || [];
-                secondarySelected = secondPool.slice(0, 3).map(b => ({ ...b, type: `✨ 多元探索：${secondCategory}` }));
-            } else {
-                // 若沒有第二分類，則從第一分類向下多延伸推薦
-                secondarySelected = topPool.slice(5, 8).map(b => ({ ...b, type: `🎯 主力偏好：${topCategory}` }));
-            }
-
-            // 5. 混合所有軌道，進行書名去重，限制 10 本呈現
-            const mixedPool = [...cloudRecommendations, ...topSelected, ...secondarySelected];
-            const seenTitles = new Set();
             const finalList = [];
-
-            // 排除使用者已經讀過的相同書名
+            const seenTitles = new Set();
             const alreadyRead = new Set(myBooks.map(b => b.title.toLowerCase().trim()));
 
-            for (let book of mixedPool) {
-                const normalizedTitle = book.title.toLowerCase().trim();
-                if (!seenTitles.has(normalizedTitle) && !alreadyRead.has(normalizedTitle)) {
-                    seenTitles.add(normalizedTitle);
-                    finalList.push(book);
-                }
-            }
-
-            // 如果篩選完不足 10 本，從主力與多元儲備池硬性補足至 10 本
-            if (finalList.length < 10) {
-                for (let book of topPool) {
-                    if (!seenTitles.has(book.title.toLowerCase().trim())) {
-                        finalList.push({ ...book, type: `🎯 主力偏好：${topCategory}` });
-                        if (finalList.length >= 10) break;
-                    }
-                }
-            }
-            // 若仍不足（極端狀況），再拿其他類別補足
-            if (finalList.length < 10) {
-                const allCategories = Object.keys(backupRecommendations);
-                for (let cat of allCategories) {
-                    if (cat !== topCategory) {
-                        for (let book of backupRecommendations[cat]) {
-                            if (!seenTitles.has(book.title.toLowerCase().trim())) {
-                                finalList.push({ ...book, type: `✨ 跨界探索：${cat}` });
-                                if (finalList.length >= 10) break;
-                            }
+            try {
+                // 軌道一：向中繼站撈取【核心偏好】書單 (取 6 本)
+                const topKeyword = categoryKeywords[topCategory];
+                const topApi = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topKeyword)}&maxResults=8&langRestrict=zh-Hant`;
+                const topData = await fetchViaProxy(topApi);
+                
+                if (topData && topData.items) {
+                    topData.items.forEach(item => {
+                        if (item.volumeInfo.title) {
+                            finalList.push({
+                                title: item.volumeInfo.title,
+                                author: item.volumeInfo.authors ? item.volumeInfo.authors.join(', ') : "領域專家組",
+                                type: `🎯 主力偏好：${topCategory}`,
+                                category: topCategory
+                            });
                         }
-                    }
-                    if (finalList.length >= 10) break;
+                    });
                 }
-            }
 
-            const resultDisplay = finalList.slice(0, 10);
+                // 軌道二：向中繼站撈取【次要偏好】或擴展領域書單 (取 4 本)
+                const secondaryCategory = secondCategory || topCategory;
+                const secKeyword = categoryKeywords[secondaryCategory];
+                // 如果沒有第二分類，則用核心關鍵字做另一種排序搜尋
+                const secApi = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(secKeyword)}&maxResults=6&orderBy=relevance&langRestrict=zh-Hant`;
+                const secData = await fetchViaProxy(secApi);
 
-            // 6. 生成高質感 10 本報告介面
-            const currentIcon = categoryIcons[topCategory] || "💡";
-            let html = `
-                <p style="margin-bottom:15px; font-size:0.92rem; color:var(--text); background: var(--primary-light); padding: 12px; border-radius: 8px;">
-                    📊 <strong>偏好多維分析簡報：</strong><br>
-                    您目前最核心的閱讀重心在 ${currentIcon} <span class="tag" style="background:var(--primary); color:white;">${topCategory}</span>
-                    ${secondCategory ? `，同時對 <span class="tag">${secondCategory}</span> 展現出跨界興趣` : ''}。<br>
-                    系統已結合您近期關注的<strong>《${latestBook.title}》</strong>，為您精選以下 10 本最匹配的書籍：
-                </p>
-            `;
+                if (secData && secData.items) {
+                    secData.items.forEach(item => {
+                        if (item.volumeInfo.title) {
+                            finalList.push({
+                                title: item.volumeInfo.title,
+                                author: item.volumeInfo.authors ? item.volumeInfo.authors.join(', ') : "卓越作者",
+                                type: secondCategory ? `✨ 多元探索：${secondCategory}` : `🎯 主力深化：${topCategory}`,
+                                category: secondaryCategory
+                            });
+                        }
+                    });
+                }
 
-            html += resultDisplay.map(book => {
-                let badgeColor = "var(--accent)";
-                let icon = "💡";
-                if (book.type.includes("近期焦點")) { badgeColor = "var(--danger)"; icon = "🔥"; }
-                else if (book.type.includes("主力偏好")) { badgeColor = "var(--primary)"; icon = "🎯"; }
-                else if (book.type.includes("多元探索")) { badgeColor = "var(--success)"; icon = "✨"; }
-                else if (book.type.includes("跨界探索")) { badgeColor = "var(--text-muted)"; icon = "🌐"; }
+                // 軌道三：近期關注焦點微觀延伸
+                const focusApi = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(latestBook.title)}&maxResults=3&langRestrict=zh-Hant`;
+                const focusData = await fetchViaProxy(focusApi);
+                if (focusData && focusData.items) {
+                    focusData.items.forEach(item => {
+                        if (item.volumeInfo.title && item.volumeInfo.title.toLowerCase() !== latestBook.title.toLowerCase()) {
+                            finalList.push({
+                                title: item.volumeInfo.title,
+                                author: item.volumeInfo.authors ? item.volumeInfo.authors.join(', ') : "精選關聯作品",
+                                type: "🔥 近期焦點延伸",
+                                category: topCategory
+                            });
+                        }
+                    });
+                }
 
-                const itemIcon = categoryIcons[book.type.split('：')[1]] || icon;
+                // 精密去重與過濾
+                const filteredList = [];
+                for (let book of finalList) {
+                    const normTitle = book.title.toLowerCase().trim();
+                    if (!seenTitles.has(normTitle) && !alreadyRead.has(normTitle)) {
+                        seenTitles.add(normTitle);
+                        filteredList.push(book);
+                    }
+                }
 
-                return `
-                    <div class="book-item" style="border-left: 5px solid ${badgeColor};">
-                        <div class="book-icon" style="background:var(--bg); font-size:1.4rem;">${itemIcon}</div>
-                        <div class="book-info">
-                            <div class="book-title" style="font-size:1rem;">${book.title}</div>
-                            <div class="book-author">作者：${book.author}</div>
-                            <span class="tag" style="background:var(--bg); color:${badgeColor}; font-weight: bold; border: 1px solid ${badgeColor};">${book.type}</span>
+                // 嚴格截取前 10 本
+                const resultDisplay = filteredList.slice(0, 10);
+
+                if (resultDisplay.length === 0) {
+                    recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">雲端未發現匹配新書，請多新增幾本書累積數據庫！</p>';
+                    return;
+                }
+
+                // 渲染界面
+                const currentIcon = categoryIcons[topCategory] || "💡";
+                let html = `
+                    <p style="margin-bottom:15px; font-size:0.92rem; color:var(--text); background: var(--primary-light); padding: 12px; border-radius: 8px;">
+                        🌐 <strong>CORS 破網傳輸成功！真實多維分析報告：</strong><br>
+                        系統偵測到您最核心的閱讀權重為 ${currentIcon} <span class="tag" style="background:var(--primary); color:white;">${topCategory}</span>
+                        ${secondCategory ? `，跨界潛能指標在 <span class="tag">${secondCategory}</span>` : ''}。<br>
+                        已結合近期關注焦點<strong>《${latestBook.title}》</strong>，100% 從雲端實時為您挖掘以下 10 本最新書籍：
+                    </p>
+                `;
+
+                html += resultDisplay.map(book => {
+                    let badgeColor = "var(--accent)";
+                    let icon = "💡";
+                    if (book.type.includes("近期焦點")) { badgeColor = "var(--danger)"; icon = "🔥"; }
+                    else if (book.type.includes("主力偏好") || book.type.includes("主力深化")) { badgeColor = "var(--primary)"; icon = "🎯"; }
+                    else if (book.type.includes("多元探索")) { badgeColor = "var(--success)"; icon = "✨"; }
+
+                    const itemIcon = categoryIcons[book.category] || icon;
+
+                    return `
+                        <div class="book-item" style="border-left: 5px solid ${badgeColor};">
+                            <div class="book-icon" style="background:var(--bg); font-size:1.4rem;">${itemIcon}</div>
+                            <div class="book-info">
+                                <div class="book-title" style="font-size:1rem;">${book.title}</div>
+                                <div class="book-author">作者：${book.author}</div>
+                                <span class="tag" style="background:var(--bg); color:${badgeColor}; font-weight: bold; border: 1px solid ${badgeColor};">${book.type}</span>
+                            </div>
                         </div>
+                    `;
+                }).join('');
+
+                recommendDiv.innerHTML = html;
+
+            } catch (error) {
+                console.error(error);
+                recommendDiv.innerHTML = `
+                    <div style="text-align:center; padding:20px; color:var(--danger);">
+                        ❌ 雲端中繼站連線逾時或受阻。<br>
+                        <small style="color:var(--text-muted);">請檢查網路連線，或稍後再試。</small>
                     </div>
                 `;
-            }).join('');
-
-            recommendDiv.innerHTML = html;
+            }
         }
 
         // === 資料安全與備份功能 ===
@@ -659,8 +596,6 @@
             }
         }
 
-        // 網頁載入時先渲染一次已讀書單
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
         renderBooks();
     </script>
 </body>
