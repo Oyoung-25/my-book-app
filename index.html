@@ -3,39 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的閱讀隨身本</title>
-    <!-- PWA 核心設定 -->
-    <meta name="theme-color" content="#4a90e2">
+    <title>我的閱讀隨身本 v2</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2b4c7e">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <style>
         :root {
-            --primary: #4a90e2;
-            --bg: #f5f7fa;
+            --primary: #2b4c7e;
+            --primary-light: #eef3f9;
+            --accent: #e67e22;
+            --bg: #f8fafc;
             --card: #ffffff;
-            --text: #333333;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background-color: var(--bg);
             color: var(--text);
-            margin: 0;
-            padding-bottom: 60px;
+            padding-bottom: 75px;
+            line-height: 1.5;
         }
         header {
             background-color: var(--primary);
             color: white;
             text-align: center;
-            padding: 15px;
-            font-size: 1.2rem;
+            padding: 18px;
+            font-size: 1.3rem;
             font-weight: bold;
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         .container {
-            padding: 15px;
+            padding: 16px;
             max-width: 600px;
             margin: 0 auto;
         }
@@ -45,22 +56,35 @@
         .page.active {
             display: block;
         }
-        /* 表單與卡片樣式 */
-        .input-group {
+        /* 卡片與輸入框 */
+        .card {
             background: var(--card);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            margin-bottom: 20px;
+        }
+        h3 {
+            margin-bottom: 12px;
+            font-size: 1.15rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         input, select, button {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin: 8px 0;
-            box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
             font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(43, 76, 126, 0.1);
         }
         button {
             background-color: var(--primary);
@@ -69,22 +93,81 @@
             font-weight: bold;
             cursor: pointer;
         }
-        .book-card {
+        button:active {
+            opacity: 0.9;
+        }
+        button.btn-secondary {
+            background-color: #64748b;
+        }
+        button.btn-danger {
+            background-color: var(--danger);
+        }
+        /* 書籍列表樣式 (含封面) */
+        .book-item {
             background: var(--card);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 16px;
+            align-items: flex-start;
+            position: relative;
+        }
+        .book-cover {
+            width: 70px;
+            height: 100px;
+            background-color: #e2e8f0;
+            border-radius: 6px;
+            object-fit: cover;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        .book-info {
+            flex-grow: 1;
+        }
+        .book-title {
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+        .book-author {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
         }
         .tag {
-            background: #e1f0ff;
+            background: var(--primary-light);
             color: var(--primary);
-            padding: 2px 8px;
-            border-radius: 12px;
+            padding: 3px 10px;
+            border-radius: 20px;
             font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .btn-delete {
+            background: none;
+            color: var(--danger);
+            border: none;
+            width: auto;
+            margin: 0;
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+        }
+        /* 資料備份區塊 */
+        .flex-group {
+            display: flex;
+            gap: 10px;
+        }
+        .flex-group button {
+            flex: 1;
+        }
+        #file-input {
+            display: none;
         }
         /* 底部導覽列 */
         .nav-bar {
@@ -92,80 +175,121 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 60px;
+            height: 65px;
             background: var(--card);
             display: flex;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #e2e8f0;
             z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom); /* 支援無邊框手機 */
         }
         .nav-item {
             flex: 1;
             text-align: center;
             padding: 10px 0;
-            font-size: 0.9rem;
-            color: #888;
+            font-size: 0.85rem;
+            color: var(--text-muted);
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+        }
+        .nav-item-icon {
+            font-size: 1.3rem;
         }
         .nav-item.active {
             color: var(--primary);
             font-weight: bold;
         }
+        /* 載入中動畫 */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
     </style>
-<link rel="manifest" href="manifest.json">
-<script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
-</script>
 </head>
 <body>
 
-    <header id="app-title">我的閱讀隨身本</header>
+    <header>我的閱讀隨身本</header>
 
     <div class="container">
-        <!-- 選單一：紀錄我看過的書 -->
         <div id="page-record" class="page active">
-            <div class="input-group">
-                <h3>新增看過的書</h3>
-                <input type="text" id="book-title" placeholder="書名">
+            <div class="card">
+                <h3>📝 新增看過的書</h3>
+                <input type="text" id="book-title" placeholder="輸入正確書名（聯網自動抓封面）">
                 <select id="book-category">
                     <option value="商管投資">商管投資</option>
                     <option value="文學小說">文學小說</option>
                     <option value="科學工程">科學工程</option>
                     <option value="心理勵志">心理勵志</option>
                 </select>
-                <button onclick="addBook()">加入紀錄</button>
+                <button onclick="addBookWithApi()">搜尋並加入紀錄</button>
             </div>
             
-            <h3>我的書單歷史</h3>
-            <div id="book-list"><!-- 動態產生 --></div>
+            <h3>📚 我的書單歷史</h3>
+            <div id="book-list"></div>
         </div>
 
-        <!-- 選單二：書籍推薦 -->
         <div id="page-recommend" class="page">
-            <h3>根據您的喜好推薦</h3>
-            <p style="color: #666; font-size: 0.9rem;">系統會分析您看過最多的書籍類型，並推薦相關書籍給您。</p>
-            <div id="recommend-list"><!-- 動態產生 --></div>
+            <div class="card">
+                <h3>💡 智慧推薦引擎</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;">
+                    系統將分析您最常閱讀的分類，並即時從 <strong>Google 圖書資料庫</strong> 撈取您可能感興趣的熱門書籍。
+                </p>
+                <div id="recommend-list"></div>
+            </div>
+        </div>
+
+        <div id="page-settings" class="page">
+            <div class="card">
+                <h3>💾 資料安全與備份</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">
+                    您的書單目前儲存在手機本地瀏覽器中。為了防止資料遺失，建議定期匯出備份。
+                </p>
+                <div class="flex-group">
+                    <button onclick="exportData()">📤 匯出備份檔</button>
+                    <button class="btn-secondary" onclick="triggerImport()">📥 匯入備份檔</button>
+                </div>
+                <input type="file" id="file-input" accept=".json" onchange="importData(event)">
+            </div>
+            
+            <div class="card" style="border: 1px solid #fee2e2;">
+                <h3 style="color: var(--danger);">⚠️ 危險區域</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">此操作將永久刪除手機內所有的閱讀紀錄，且無法復原。</p>
+                <button class="btn-danger" onclick="clearAllData()">清除所有 App 資料</button>
+            </div>
         </div>
     </div>
 
-    <!-- 底部導覽列 -->
     <div class="nav-bar">
-        <div class="nav-item active" onclick="switchPage('record', this)">📝 紀錄書籍</div>
-        <div class="nav-item" onclick="switchPage('recommend', this)">💡 推薦書籍</div>
+        <div class="nav-item active" onclick="switchPage('record', this)">
+            <span class="nav-item-icon">📝</span><span>紀錄書籍</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('recommend', this)">
+            <span class="nav-item-icon">💡</span><span>智慧推薦</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('settings', this)">
+            <span class="nav-item-icon">⚙️</span><span>安全設定</span>
+        </div>
     </div>
 
     <script>
-        // 模擬的推薦書籍資料庫
-        const mockRecommendations = {
-            "商管投資": ["《原子習慣》", "《富爸爸，窮爸爸》", "《快思慢想》"],
-            "文學小說": ["《解憂雜貨店》", "《第一人稱單數》", "《百年孤寂》"],
-            "科學工程": ["《人類大歷史》", "《賈伯斯傳》", "《程式碼大全》"],
-            "心理勵志": ["《被討厭的勇氣》", "《蛤蟆先生去看心理師》", "《控制焦慮》"]
-        };
-
         // 初始化讀取 LocalStorage 資料
         let myBooks = JSON.parse(localStorage.getItem('myBooks')) || [];
+
+        // 預設分類與 Google Books 的搜尋關鍵字對照表 (用於智慧推薦)
+        const categoryKeywords = {
+            "商管投資": "商業理財+投資",
+            "文學小說": "小說+文學",
+            "科學工程": "科學+科普+工程",
+            "心理勵志": "心理學+個人成長"
+        };
+
+        // 預設封面圖片 (避免某些書籍沒有封面的備用圖)
+        const defaultCover = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=150&auto=format&fit=crop&q=60";
 
         // 切換分頁
         function switchPage(pageId, navElement) {
@@ -176,7 +300,7 @@
             navElement.classList.add('active');
 
             if (pageId === 'recommend') {
-                generateRecommendations();
+                fetchRealRecommendations();
             }
         }
 
@@ -184,87 +308,228 @@
         function renderBooks() {
             const listDiv = document.getElementById('book-list');
             if (myBooks.length === 0) {
-                listDiv.innerHTML = '<p style="color:#999; text-align:center;">目前還沒有紀錄喔，趕快新增一本吧！</p>';
+                listDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">目前還沒有紀錄喔，趕快新增一本吧！</p>';
                 return;
             }
             listDiv.innerHTML = myBooks.map((book, index) => `
-                <div class="book-card">
-                    <div>
-                        <strong style="font-size:1.1rem;">${book.title}</strong>
-                        <div style="margin-top:5px;"><span class="tag">${book.category}</span></div>
+                <div class="book-item">
+                    <img class="book-cover" src="${book.cover || defaultCover}" alt="封面">
+                    <div class="book-info">
+                        <div class="book-title">${book.title}</div>
+                        <div class="book-author">${book.author || '未知作者'}</div>
+                        <span class="tag">${book.category}</span>
                     </div>
-                    <button onclick="deleteBook(${index})" style="width:auto; padding:5px 10px; background:#ff4d4d; margin:0;">刪除</button>
+                    <button class="btn-delete" onclick="deleteBook(${index})">❌ 刪除</button>
                 </div>
             `).join('');
         }
 
-        // 新增書籍
-        function addBook() {
+        // 新增書籍：串接 Google Books API 線上搜書並自動填入封面、作者
+        async function addBookWithApi() {
             const titleInput = document.getElementById('book-title');
             const categorySelect = document.getElementById('book-category');
+            const bookTitle = titleInput.value.trim();
             
-            if (!titleInput.value.trim()) {
+            if (!bookTitle) {
                 alert('請輸入書名！');
                 return;
             }
 
-            myBooks.push({
-                title: titleInput.value.trim(),
-                category: categorySelect.value
-            });
+            // 顯示搜尋中狀態
+            const originalBtnText = event.target.innerText;
+            event.target.innerText = "正在搜尋圖書庫...";
+            event.target.disabled = true;
 
-            localStorage.setItem('myBooks', JSON.stringify(myBooks));
-            titleInput.value = '';
-            renderBooks();
+            try {
+                // 呼叫 Google Books API
+                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1`);
+                const data = await response.json();
+                
+                let author = "未知作者";
+                let coverUrl = defaultCover;
+                let finalTitle = bookTitle;
+
+                if (data.items && data.items.length > 0) {
+                    const info = data.items[0].volumeInfo;
+                    finalTitle = info.title || bookTitle;
+                    author = info.authors ? info.authors.join(', ') : "未知作者";
+                    if (info.imageLinks && info.imageLinks.thumbnail) {
+                        // 將 http 改為 https 避免安全阻擋
+                        coverUrl = info.imageLinks.thumbnail.replace('http://', 'https://');
+                    }
+                }
+
+                // 寫入資料庫
+                myBooks.push({
+                    title: finalTitle,
+                    author: author,
+                    cover: coverUrl,
+                    category: categorySelect.value,
+                    timestamp: new Date().getTime()
+                });
+
+                localStorage.setItem('myBooks', JSON.stringify(myBooks));
+                titleInput.value = '';
+                renderBooks();
+                alert(`成功加入：《${finalTitle}》`);
+
+            } catch (error) {
+                console.error(error);
+                alert('網路連線失敗，改以純文字模式幫您加入。');
+                // 斷網時的備用方案
+                myBooks.push({
+                    title: bookTitle,
+                    author: "未知",
+                    cover: defaultCover,
+                    category: categorySelect.value,
+                    timestamp: new Date().getTime()
+                });
+                localStorage.setItem('myBooks', JSON.stringify(myBooks));
+                renderBooks();
+            } finally {
+                // 恢復按鈕狀態
+                document.querySelector('#page-record button').innerText = "搜尋並加入紀錄";
+                document.querySelector('#page-record button').disabled = false;
+            }
         }
 
         // 刪除書籍
         function deleteBook(index) {
-            myBooks.splice(index, 1);
-            localStorage.setItem('myBooks', JSON.stringify(myBooks));
-            renderBooks();
+            if(confirm("確定要刪除這本書的紀錄嗎？")) {
+                myBooks.splice(index, 1);
+                localStorage.setItem('myBooks', JSON.stringify(myBooks));
+                renderBooks();
+            }
         }
 
-        // 智慧推薦邏輯：計算看過最多的分類，推薦該分類的書
-        function generateRecommendations() {
+        // 升級方案 B：根據最常看的分類，即時去 Google Books API 抓取真實熱門新書推薦
+        async function fetchRealRecommendations() {
             const recommendDiv = document.getElementById('recommend-list');
             
             if (myBooks.length === 0) {
-                recommendDiv.innerHTML = '<p style="color:#999; text-align:center;">請先在「紀錄書籍」中新增書籍，系統才能分析您的喜好。</p>';
+                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">請先在「紀錄書籍」中新增書籍，系統才能分析您的喜好並推薦。</p>';
                 return;
             }
 
-            // 計算每個分類出現的次數
-            const counts = {};
-            myBooks.forEach(book => {
-                counts[book.category] = (counts[book.category] || 0) + 1;
-            });
+            recommendDiv.innerHTML = '<div class="loading">正在根據您的喜好，分析全球圖書庫中...</div>';
 
-            // 找出最常看的分類
+            // 1. 計算最常看的分類
+            const counts = {};
+            myBooks.forEach(book => { counts[book.category] = (counts[book.category] || 0) + 1; });
             let favoriteCategory = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
 
-            // 抓取該分類推薦書單，並排除已經看過的書
-            const alreadyReadTitles = myBooks.map(b => b.title);
-            const recs = mockRecommendations[favoriteCategory] || [];
-            const filteredRecs = recs.filter(bookTitle => !alreadyReadTitles.includes(bookTitle));
+            // 2. 獲取該分類對應的 API 關鍵字
+            const keyword = categoryKeywords[favoriteCategory] || "閱讀";
 
-            let html = `<p>偵測到您最常閱讀的領域是：<span class="tag">${favoriteCategory}</span></p>`;
-            
-            if (filteredRecs.length === 0) {
-                html += '<p>🎉 太厲害了！這個分類的推薦書籍您都看過了！</p>';
-            } else {
-                html += filteredRecs.map(title => `
-                    <div class="book-card">
-                        <div><strong>${title}</strong></div>
-                        <span class="tag" style="background:#e6fcf5; color:#0ca678;">推薦給您</span>
-                    </div>
-                `).join('');
+            try {
+                // 3. 向 Google Books 請求該關鍵字的熱門書籍 (依關聯度排序，取5本)
+                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(keyword)}&orderBy=relevance&maxResults=5&langRestrict=zh-Hant`);
+                const data = await response.json();
+
+                let html = `<p style="margin-bottom:15px;">偵測到您最愛的領域是 <span class="tag">${favoriteCategory}</span>，為您精選以下真實書籍：</p>`;
+
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                        const info = item.volumeInfo;
+                        const title = info.title;
+                        const author = info.authors ? info.authors.join(', ') : "佚名";
+                        let cover = defaultCover;
+                        if (info.imageLinks && info.imageLinks.thumbnail) {
+                            cover = info.imageLinks.thumbnail.replace('http://', 'https://');
+                        }
+
+                        html += `
+                            <div class="book-item" style="border-left: 4px solid var(--accent);">
+                                <img class="book-cover" src="${cover}" alt="封面">
+                                <div class="book-info">
+                                    <div class="book-title" style="font-size:0.95rem;">${title}</div>
+                                    <div class="book-author">${author}</div>
+                                    <span class="tag" style="background:#fff3e0; color:var(--accent);">熱門推薦</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p style="color:#94a3b8;">暫時沒找到相關推薦，請稍後再試。</p>';
+                }
+                
+                recommendDiv.innerHTML = html;
+
+            } catch (error) {
+                console.error(error);
+                recommendDiv.innerHTML = '<p style="color:var(--danger); text-align:center;">推薦載入失敗，請檢查網路連線。</p>';
             }
-            
-            recommendDiv.innerHTML = html;
         }
 
-        // 網頁載入時先渲染一次
+        // === 資料安全與備份功能 (Data) ===
+
+        // 匯出 JSON 備份檔
+        function exportData() {
+            if (myBooks.length === 0) {
+                alert('目前沒有資料可以匯出喔！');
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(myBooks));
+            const downloadAnchor = document.createElement('a');
+            
+            // 設定檔名帶有當前日期
+            const date = new Date().toISOString().slice(0,10);
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `我的書單備份_${date}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // 觸發隱藏的檔案選擇器
+        function triggerImport() {
+            document.getElementById('file-input').click();
+        }
+
+        // 匯入 JSON 備份檔並還原
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedBooks = JSON.parse(e.target.result);
+                    
+                    // 簡單驗證是否為陣列格式
+                    if (Array.isArray(importedBooks)) {
+                        if (confirm(`偵測到備份檔內有 ${importedBooks.length} 本書籍，是否要匯入並覆蓋目前的書單？`)) {
+                            myBooks = importedBooks;
+                            localStorage.setItem('myBooks', JSON.stringify(myBooks));
+                            renderBooks();
+                            alert('🎉 書單資料還原成功！');
+                        }
+                    } else {
+                        alert('檔案格式不正確，請匯入本 App 產生的備份檔案。');
+                    }
+                } catch (err) {
+                    alert('讀取檔案失敗，請確保這是正確的 JSON 備份檔。');
+                }
+            };
+            reader.readAsText(file);
+            // 清空選擇器以利重複觸發
+            event.target.value = '';
+        }
+
+        // 清除所有資料
+        function clearAllData() {
+            if (confirm("🚨 警告：這將徹底清除所有閱讀紀錄！確定要執行嗎？")) {
+                if (confirm("最後確認：資料清除後將無法救回。")) {
+                    myBooks = [];
+                    localStorage.removeItem('myBooks');
+                    renderBooks();
+                    alert('所有資料已成功清除。');
+                }
+            }
+        }
+
+        // 網頁載入時先渲染一次已讀書單
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
         renderBooks();
     </script>
 </body>
