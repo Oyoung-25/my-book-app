@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的閱讀隨身本 v6.5-智慧關聯與精準作者版</title>
+    <title>我的閱讀隨身本 v6.6-超強防禦作者識別版</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2b4c7e">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -152,13 +152,12 @@
     <script>
         let myBooks = JSON.parse(localStorage.getItem('myBooks')) || [];
 
-        // Google 搜尋與本地映射的對照關鍵字
         const googleSearchKeywords = {
             "商管財經": "商業理財", "文學小說": "台灣文學小說", "心理勵志": "心理成長", "電機資訊": "電腦電機資訊",
             "運動健身": "跑步運動健身", "人文歷史": "歷史人文", "語言學習": "台灣話語言學", "戶外休閒": "高山登山戶外", "漫畫專區": "台灣金漫獎漫畫"
         };
 
-        // 雲端斷線時的本地高品質儲備庫（內含精確作者欄位）
+        // 核心高品質本地儲備庫（第一、二層防禦失敗時作為強大靠山）
         const taiwanMediaDatabase = {
             "商管財經": [
                 { title: "原子習慣", author: "詹姆斯．克利爾", source: "博客來年度榜首" },
@@ -237,6 +236,9 @@
             }).join('');
         }
 
+        // ==========================================
+        // 升級版：具備三層防禦機制的聯網作者抓取系統
+        // ==========================================
         async function addBookWithApi() {
             const titleInput = document.getElementById('book-title');
             const categorySelect = document.getElementById('book-category');
@@ -244,22 +246,68 @@
             if (!bookTitle) { alert('請輸入書名！'); return; }
 
             const btn = document.querySelector('#page-record button');
-            btn.innerText = "正在聯網識別作者...";
+            btn.innerText = "🚀 正在進行多通道作者檢索...";
+            btn.disabled = true;
 
-            let detectedAuthor = "個人收藏";
+            let detectedAuthor = "";
+
+            // --- 【第一層防線：直連 Google Books API】 ---
             try {
-                // 自動聯網幫你查這本書的真實作者是誰！
-                const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1&langRestrict=zh-Hant`);
+                const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1&langRestrict=zh-Hant`;
+                const res = await fetch(url);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.items && data.items[0].volumeInfo.authors) {
                         detectedAuthor = data.items[0].volumeInfo.authors.join(', ');
+                        console.log("第一層直連抓取成功：" + detectedAuthor);
                     }
                 }
-            } catch (e) { console.log("聯網查詢作者失敗，改用手動"); }
+            } catch (e) { console.log("第一層直連被阻擋，切換防禦代理..."); }
 
-            const userAuthor = prompt(`系統識別作者為：《${detectedAuthor}》\n如果要修改請輸入，否則直接按確定：`, detectedAuthor);
-            if (userAuthor === null) { btn.innerText = "加入書單紀錄"; return; }
+            // --- 【第二層防線：CORS 雲端萬用代理網（破解手機瀏覽器跨網域阻擋）】 ---
+            if (!detectedAuthor) {
+                try {
+                    const targetUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1&langRestrict=zh-Hant`;
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                    const res = await fetch(proxyUrl);
+                    if (res.ok) {
+                        const json = await res.json();
+                        // allorigins 會把結果包在 contents 字串裡，需要二次解析
+                        const data = JSON.parse(json.contents);
+                        if (data.items && data.items[0].volumeInfo.authors) {
+                            detectedAuthor = data.items[0].volumeInfo.authors.join(', ');
+                            console.log("第二層雲端代理抓取成功：" + detectedAuthor);
+                        }
+                    }
+                } catch (e) { console.log("第二層代理連線失敗或超時，切換離線智慧比對..."); }
+            }
+
+            // --- 【第三層防線：本地數據庫模糊比對（零網路黑科技）】 ---
+            if (!detectedAuthor) {
+                for (let cat of Object.keys(taiwanMediaDatabase)) {
+                    for (let book of taiwanMediaDatabase[cat]) {
+                        // 只要輸入的字有包含在資料庫經典書籍裡，就自動帶出作者
+                        if (bookTitle.includes(book.title) || book.title.includes(bookTitle)) {
+                            detectedAuthor = book.author;
+                            console.log("第三層離線模糊比對成功：" + detectedAuthor);
+                            break;
+                        }
+                    }
+                    if (detectedAuthor) break;
+                }
+            }
+
+            // 最終防線：如果都找不到，則預設顯示個人收藏
+            if (!detectedAuthor) {
+                detectedAuthor = "個人收藏";
+            }
+
+            btn.innerText = "加入書單紀錄";
+            btn.disabled = false;
+
+            // 彈出對話框供讀者做最後確認與修改
+            const userAuthor = prompt(`【作者識別報告】\n系統為您尋找到的作者為：《${detectedAuthor}》\n\n您可以直接按確定，或在下方欄位修改作者名稱：`, detectedAuthor);
+            if (userAuthor === null) return; // 點擊取消則中斷
 
             myBooks.push({
                 title: bookTitle,
@@ -271,7 +319,6 @@
             localStorage.setItem('myBooks', JSON.stringify(myBooks));
             titleInput.value = '';
             renderBooks();
-            btn.innerText = "加入書單紀錄";
         }
 
         function deleteBook(index) {
@@ -283,7 +330,7 @@
         }
 
         // ===================================================
-        // 核心：智慧關鍵字交叉比對 + 聯網精準圖書推薦系統
+        // 智慧關鍵字交叉比對 + 聯網備援混合型推薦引擎
         // ===================================================
         async function fetchRecommendations() {
             const recommendDiv = document.getElementById('recommend-list');
@@ -294,25 +341,26 @@
 
             recommendDiv.innerHTML = '<div class="loading">🧠 正在分析您的歷史書單關鍵字，並即時連線雲端圖書庫...</div>';
 
-            // 1. 分析使用者最愛的分類
             const counts = {};
             myBooks.forEach(book => { counts[book.category] = (counts[book.category] || 0) + 1; });
             const topCategory = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
 
-            // 2. 收集使用者所有看過的「關鍵字碎屑」（用於交叉關聯推薦）
             const historyTitlesString = myBooks.map(b => b.title).join(" ");
             const alreadyRead = new Set(myBooks.map(b => b.title.toLowerCase().trim()));
             const seenTitles = new Set();
             
             let resultDisplay = [];
 
-            // 3. 聯網核心：使用 Google Books API 抓取正體中文精確出版品與作者
+            // 抓取雲端推薦項目（套用萬用代理，確保推薦分頁也能100%連線成功）
             try {
                 const apiKeyword = googleSearchKeywords[topCategory] || topCategory;
-                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(apiKeyword)}&orderBy=newest&maxResults=15&langRestrict=zh-Hant`);
+                const targetApi = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(apiKeyword)}&orderBy=newest&maxResults=12&langRestrict=zh-Hant`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetApi)}`;
                 
+                const response = await fetch(proxyUrl);
                 if (response.ok) {
-                    const data = await response.json();
+                    const json = await response.json();
+                    const data = JSON.parse(json.contents);
                     if (data && data.items) {
                         data.items.forEach(item => {
                             const v = item.volumeInfo;
@@ -323,11 +371,9 @@
                             if (!alreadyRead.has(normTitle) && !seenTitles.has(normTitle)) {
                                 seenTitles.add(normTitle);
                                 
-                                // 智慧演算法核心：比對書名與你的歷史記錄是否有字詞交集
-                                let matchScore = 0;
-                                // 簡單字詞關聯：如果新書名中有任何字出現在歷史書名中，加分！
+                                let matchScore = 2; // 雲端基底權重分
                                 for (let char of title) {
-                                    if (char.trim() && historyTitlesString.includes(char)) matchScore++;
+                                    if (char.trim() && historyTitlesString.includes(char)) matchScore += 3;
                                 }
 
                                 resultDisplay.push({
@@ -337,23 +383,23 @@
                                     type: `📡 雲端即時：${topCategory}`,
                                     category: topCategory,
                                     link: v.infoLink,
-                                    score: matchScore // 智慧權重分數
+                                    score: matchScore
                                 });
                             }
                         });
                     }
                 }
-            } catch (e) { console.log("聯網抓取失敗，啟動備援機制"); }
+            } catch (e) { console.log("推薦引擎連網受阻，啟動本地儲備庫權重排序"); }
 
-            // 4. 混合本地高品質儲備庫，並同樣進行智慧分數計算
+            // 混合靜態高品質資料庫
             Object.keys(taiwanMediaDatabase).forEach(cat => {
                 taiwanMediaDatabase[cat].forEach(b => {
                     const normTitle = b.title.toLowerCase().trim();
                     if (!alreadyRead.has(normTitle) && !seenTitles.has(normTitle)) {
                         seenTitles.add(normTitle);
-                        let matchScore = (cat === topCategory) ? 5 : 0; // 同分類基本分
+                        let matchScore = (cat === topCategory) ? 5 : 0;
                         for (let char of b.title) {
-                            if (char.trim() && historyTitlesString.includes(char)) matchScore += 2;
+                            if (char.trim() && historyTitlesString.includes(char)) matchScore += 4;
                         }
                         resultDisplay.push({
                             ...b,
@@ -366,17 +412,16 @@
                 });
             });
 
-            // 5. 💡 關鍵：根據「智慧分數」由高到低排序，讓最符合你品味的書排在最前面！
+            // 依智慧權重分數高低進行大排序
             resultDisplay.sort((a, b) => b.score - a.score);
 
-            // 嚴格截取前 10 本
             const finalList = resultDisplay.slice(0, 10);
             const currentIcon = categoryIcons[topCategory] || "💡";
 
             let html = `
                 <div style="margin-bottom:15px; font-size:0.92rem; color:var(--text); background: var(--primary-light); padding: 14px; border-radius: 8px; border-left: 4px solid var(--accent);">
                     🧠 <b>AI 智慧權重分析完成：</b><br>
-                    系統已精準抓取最新聯網作者，並根據您歷史書單中的關鍵字完成品味交集計算。以下為您最感興趣的 ${currentIcon} <b>${topCategory}</b> 延伸推薦：
+                    系統已透過全通道代理抓取最新聯網作者，並根據您的關鍵字交集完成計算。以下為您最感興趣的 ${currentIcon} <b>${topCategory}</b> 延伸推薦：
                 </div>
             `;
 
@@ -391,8 +436,7 @@
                     ? `<a href="${book.link}" target="_blank" style="color:var(--primary); text-decoration:none; border-bottom: 1px dashed var(--primary); padding-bottom: 1px;">${book.title} ↗</a>`
                     : book.title;
 
-                // 如果分數很高，加上一個智慧推薦的小標籤
-                const smartBadge = book.score > 3 ? `<span style="background-color:#fed7aa; color:#ea580c; font-size:0.7rem; padding:1px 5px; border-radius:4px; margin-left:5px; font-weight:bold;">高關聯符合</span>` : '';
+                const smartBadge = book.score > 5 ? `<span style="background-color:#fed7aa; color:#ea580c; font-size:0.7rem; padding:1px 5px; border-radius:4px; margin-left:5px; font-weight:bold;">高關聯符合</span>` : '';
 
                 return `
                     <div class="book-item" style="border-left: 5px solid ${badgeColor};">
@@ -410,7 +454,7 @@
             recommendDiv.innerHTML = html;
         }
 
-        // 備份功能保持不變
+        // 備份系統
         function exportData() {
             if (myBooks.length === 0) { alert('目前沒有資料可以匯出喔！'); return; }
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(myBooks));
@@ -436,7 +480,7 @@
             reader.readAsText(file);
         }
         function clearAllData() {
-            if (confirm("🚨 確定要清除所有資料嗎？二連確認後將無法復原！")) {
+            if (confirm("🚨 確定要清除所有資料嗎？清除後將無法復原！")) {
                 myBooks = []; localStorage.removeItem('myBooks'); renderBooks(); alert('已全部清除。');
             }
         }
