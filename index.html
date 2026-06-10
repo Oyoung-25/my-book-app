@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的閱讀隨身本 v8.7-零空值完美彈性版</title>
+    <title>我的閱讀隨身本 v9.0-雲端完全體</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2b4c7e">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -88,6 +88,7 @@
     <header>我的閱讀隨身本</header>
 
     <div class="container">
+        <!-- 分頁一：紀錄 -->
         <div id="page-record" class="page active">
             <div class="card">
                 <h3>📝 新增看過的書</h3>
@@ -103,20 +104,22 @@
                     <option value="戶外休閒">⛰️ 戶外休閒</option>
                     <option value="漫畫專區">💬 漫畫專區</option>
                 </select>
-                <button onclick="addBookWithGoogle()">加入書單紀錄</button>
+                <button onclick="addBookWithServer()">加入書單紀錄</button>
             </div>
             
             <h3>📚 我的書單歷史</h3>
             <div id="book-list"></div>
         </div>
 
+        <!-- 分頁二：智慧推薦 -->
         <div id="page-recommend" class="page">
             <div class="card">
-                <h3>🌐 Google 雲端繁中圖譜即時推薦 (10本滿載)</h3>
+                <h3>🌐 專屬伺服器動態推薦 (10本滿載)</h3>
                 <div id="recommend-list"></div>
             </div>
         </div>
 
+        <!-- 分頁三：設定 -->
         <div id="page-settings" class="page">
             <div class="card">
                 <h3>💾 資料安全與備份</h3>
@@ -151,7 +154,9 @@
     <script>
         let myBooks = JSON.parse(localStorage.getItem('myBooks')) || [];
 
-        // 雲端海量檢索大類別對焦關鍵詞
+        // 🚨 【最核心修改】：請把下方引號內，替換成你剛才在 Cloudflare 申請到的真實 Worker 網址！
+        const MY_OWN_SERVER = "https://my-book-proxy.mrlee8281.workers.dev/"; 
+
         const googleSearchKeywords = {
             "商管財經": "商業理財 趨勢 經營", "文學小說": "小說 台灣文學 文藝", "心理勵志": "心理成長 諮商 勵志", "電機資訊": "電腦電機技術 科技 工程",
             "運動健身": "馬拉松 訓練 跑步 耐力", "人文歷史": "台灣歷史 社會學 人文", "語言學習": "台灣話 語言學 詞典", "戶外休閒": "登山 遠征 冒險 百岳", "漫畫專區": "台灣 漫畫 金漫獎 繪本"
@@ -192,23 +197,24 @@
             }).join('');
         }
 
-        // 直連 Google 官方 API：自動識別作者與精準書名
-        async function addBookWithGoogle() {
+        // 核心一：透過你專屬的雲端伺服器代抓 Google Books 作者資料
+        async function addBookWithServer() {
             const titleInput = document.getElementById('book-title');
             const categorySelect = document.getElementById('book-category');
             const bookTitle = titleInput.value.trim();
             if (!bookTitle) { alert('請輸入書名！'); return; }
 
             const btn = document.querySelector('#page-record button');
-            btn.innerText = "🔍 正在直連 Google 官方庫識別作者...";
+            btn.innerText = "🚀 專屬伺服器正在穿透阻擋、解析作者...";
             btn.disabled = true;
 
-            let detectedAuthor = "未知作者";
+            let detectedAuthor = "個人收藏";
             let finalTitle = bookTitle;
 
             try {
-                const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1&langRestrict=zh-Hant`;
-                const res = await fetch(url);
+                const targetApi = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1&langRestrict=zh-Hant`;
+                // 關鍵：將請求發送給你自己的 Worker 伺服器
+                const res = await fetch(`${MY_OWN_SERVER}?url=${encodeURIComponent(targetApi)}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.items && data.items[0]) {
@@ -217,12 +223,12 @@
                         detectedAuthor = info.authors ? info.authors.join(', ') : "指標作家";
                     }
                 }
-            } catch (e) { console.error("Google API 連線異常", e); }
+            } catch (e) { console.error("專屬伺服器連線異常", e); }
 
             btn.innerText = "加入書單紀錄";
             btn.disabled = false;
 
-            const userAuthor = prompt(`【Google 官方庫識別報告】\n對齊書名：《${finalTitle}》\n精確作者：《${detectedAuthor}》\n\n確認或手動修改請輸入：`, detectedAuthor);
+            const userAuthor = prompt(`【專屬伺服器識別報告】\n對齊書名：《${finalTitle}》\n精確作者：《${detectedAuthor}》\n\n確認或手動修改請輸入：`, detectedAuthor);
             if (userAuthor === null) return;
 
             myBooks.push({
@@ -245,15 +251,15 @@
             }
         }
 
-        // 智慧推薦核心（升級：無漏洞、零空值、自動回退機制）
+        // 核心二：透過專屬伺服器進行動態海量推薦（安全淨化過濾 ＋ 回退機制）
         async function fetchRecommendations() {
             const recommendDiv = document.getElementById('recommend-list');
             if (myBooks.length === 0) {
-                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">請先新增看過的書籍，系統才能向雲端建立關聯對焦。</p>';
+                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">請先新增書籍，系統才能向雲端建立關聯對焦。</p>';
                 return;
             }
 
-            recommendDiv.innerHTML = '<div class="loading">📡 全球直連技術啟動：正在調閱 Google 繁中百萬冊智慧書庫...</div>';
+            recommendDiv.innerHTML = '<div class="loading">📡 專屬伺服器正與雲端大數據對齊中...</div>';
 
             const counts = {};
             myBooks.forEach(book => { counts[book.category] = (counts[book.category] || 0) + 1; });
@@ -261,31 +267,29 @@
 
             const latestBook = myBooks[myBooks.length - 1];
             
-            // 🛡️ 智能淨化：先全面濾掉網址衝突符號，但保留完整字元長度以利精準配對
+            // 智能防禦性淨化
             let cleanLatestTitle = latestBook.title
                 .replace(/[+\-#&?【】《》()（）!@$%^*]/g, ' ') 
                 .replace(/\s+/g, ' ')                        
                 .trim();
 
-            // 如果書名太長，點到為止即可（切到 12 個字，增加容錯率）
             if (cleanLatestTitle.length > 12) {
                 cleanLatestTitle = cleanLatestTitle.substring(0, 12);
             }
 
-            // 優先組合：真實書名 + 分類大詞
             let searchQuery = `${cleanLatestTitle} ${googleSearchKeywords[topCategory]}`;
             
             const alreadyRead = new Set(myBooks.map(b => b.title.toLowerCase().trim()));
             const seenTitles = new Set();
             let resultDisplay = [];
 
-            // 【主線任務：嘗試精準匹配搜尋】
+            // 主線搜尋
             try {
-                const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&orderBy=relevance&maxResults=25&langRestrict=zh-Hant`;
-                const res = await fetch(url);
+                const targetApi = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&orderBy=relevance&maxResults=25&langRestrict=zh-Hant`;
+                const res = await fetch(`${MY_OWN_SERVER}?url=${encodeURIComponent(targetApi)}`);
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && data.items && data.items.length > 0) {
+                    if (data && data.items) {
                         data.items.forEach(item => {
                             const v = item.volumeInfo;
                             let title = v.title;
@@ -297,7 +301,7 @@
                                 resultDisplay.push({
                                     title: title,
                                     author: v.authors ? v.authors.join(', ') : "指標專家",
-                                    source: v.publisher || "繁體中文雲端精選",
+                                    source: v.publisher || "雲端智慧精選",
                                     link: v.infoLink || "#",
                                     category: topCategory,
                                     isFallback: false
@@ -306,15 +310,14 @@
                         });
                     }
                 }
-            } catch (e) { console.error("主線連線跳過"); }
+            } catch (e) { console.error("主線跳過"); }
 
-            // 🛡️ 【核心回退安全網】：若主線搜出來是一片空白（空值），毫秒內啟動盲搜防禦，絕不報錯！
+            // 盲搜防護安全網
             if (resultDisplay.length < 10) {
                 try {
-                    // 放棄破碎的書名，改用該分類的「海量大詞庫」強行破網抓書
                     const fallbackQuery = googleSearchKeywords[topCategory];
-                    const fallbackUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(fallbackQuery)}&orderBy=newest&maxResults=20&langRestrict=zh-Hant`;
-                    const res = await fetch(fallbackUrl);
+                    const targetFallbackApi = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(fallbackQuery)}&orderBy=newest&maxResults=20&langRestrict=zh-Hant`;
+                    const res = await fetch(`${MY_OWN_SERVER}?url=${encodeURIComponent(targetFallbackApi)}`);
                     if (res.ok) {
                         const data = await res.json();
                         if (data && data.items) {
@@ -338,27 +341,22 @@
                             });
                         }
                     }
-                } catch(e){ console.error("防線異常"); }
+                } catch(e){}
             }
 
-            // 打亂洗牌，確保每次點進來都有隨機新鮮感
             const finalList = resultDisplay.sort(() => Math.random() - 0.5).slice(0, 10);
             const currentIcon = categoryIcons[topCategory] || "💡";
 
-            // 萬一完全沒網路的最終絕境提示
             if (finalList.length === 0) {
-                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">📴 雲端完全斷線，請檢查手機或電腦網路狀態。</p>';
+                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">📴 專屬伺服器連線受阻，請檢查網路狀態。</p>';
                 return;
             }
 
-            // 判斷剛剛有沒有啟用安全防護網
             const hasFallbackUsed = finalList.some(b => b.isFallback);
             let reportHtml = `
                 <div style="margin-bottom:15px; font-size:0.92rem; color:var(--text); background: var(--primary-light); padding: 14px; border-radius: 8px; border-left: 4px solid ${hasFallbackUsed ? 'var(--accent)' : 'var(--success)'};">
-                    📡 <b>Google 雲端矩陣智能對焦報告：</b><br>
-                    ${hasFallbackUsed 
-                        ? `系統偵測到您輸入的書籍過於獨特。為了防止版面空白，<b>智慧防護網已自動啟動</b>！已為您從 <b>${topCategory}</b> 雲端矩陣中高精確網羅以下 10 本指標新書：`
-                        : `成功與雲端對接！已將您看過的《<b>${cleanLatestTitle}</b>》與 <b>${topCategory}</b> 偏好交叉運算，實時為您配置以下 10 本品味關聯書籍：`}
+                    🛠️ <b>專屬私有伺服器（Cloudflare Workers）連線成功：</b><br>
+                    已完美繞過前端瀏覽器環境封鎖！依據您的 ${currentIcon} <b>${topCategory}</b> 閱讀喜好，實時在後端網羅以下 10 本指標推薦書籍：
                 </div>
             `;
 
