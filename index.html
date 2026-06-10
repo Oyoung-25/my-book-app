@@ -1,4 +1,278 @@
-<script>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的閱讀隨身本 v7.5-雲端中繼完全體</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2b4c7e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <style>
+        :root {
+            --primary: #2b4c7e;
+            --primary-light: #eef3f9;
+            --accent: #e67e22;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding-bottom: 75px;
+            line-height: 1.5;
+        }
+        header {
+            background-color: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 18px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .container {
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        /* 卡片與輸入框 */
+        .card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            margin-bottom: 20px;
+        }
+        h3 {
+            margin-bottom: 12px;
+            font-size: 1.15rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(43, 76, 126, 0.1);
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:active {
+            opacity: 0.9;
+        }
+        button.btn-secondary {
+            background-color: #64748b;
+        }
+        button.btn-danger {
+            background-color: var(--danger);
+        }
+        /* 書籍清單樣式 */
+        .book-item {
+            background: var(--card);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            position: relative;
+            border-left: 5px solid var(--primary);
+        }
+        .book-icon {
+            font-size: 1.8rem;
+            background: var(--primary-light);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .book-info {
+            flex-grow: 1;
+            padding-right: 40px;
+        }
+        .book-title {
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 2px;
+            color: var(--text);
+        }
+        .book-author {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .tag {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .btn-delete {
+            background: none;
+            color: var(--danger);
+            border: none;
+            width: auto;
+            margin: 0;
+            padding: 8px;
+            font-size: 1.1rem;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+        /* 底部導覽列 */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 65px;
+            background: var(--card);
+            display: flex;
+            border-top: 1px solid #e2e8f0;
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+        }
+        .nav-item-icon {
+            font-size: 1.3rem;
+        }
+        .nav-item.active {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <header>我的閱讀隨身本</header>
+
+    <div class="container">
+        <div id="page-record" class="page active">
+            <div class="card">
+                <h3>📝 新增看過的書</h3>
+                <input type="text" id="book-title" placeholder="請輸入書名或漫畫名">
+                <select id="book-category">
+                    <option value="商管財經">📈 商管財經</option>
+                    <option value="文學小說">📚 文學小說</option>
+                    <option value="心理勵志">🧠 心理勵志</option>
+                    <option value="電機資訊">⚡ 電機資訊</option>
+                    <option value="運動健身">🏃 運動健身</option>
+                    <option value="人文歷史">🏛️ 人文歷史</option>
+                    <option value="語言學習">🗣️ 語言學習</option>
+                    <option value="戶外休閒">⛰️ 戶外休閒</option>
+                    <option value="漫畫專區">💬 漫畫專區</option>
+                </select>
+                <button onclick="addBookWithApi()">加入書單紀錄</button>
+            </div>
+            
+            <h3>📚 我的書單歷史</h3>
+            <div id="book-list"></div>
+        </div>
+
+        <div id="page-recommend" class="page">
+            <div class="card">
+                <h3>📰 台灣在地媒體 RSS 聯播引擎</h3>
+                <div id="recommend-list"></div>
+            </div>
+        </div>
+
+        <div id="page-settings" class="page">
+            <div class="card">
+                <h3>💾 資料安全與備份</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">
+                    您的書單目前儲存在手機本地。為了防止資料遺失，建議定期匯出備份檔案。
+                </p>
+                <div class="flex-group" style="display: flex; gap: 10px;">
+                    <button onclick="exportData()" style="flex: 1;">📤 匯出備份檔</button>
+                    <button class="btn-secondary" onclick="triggerImport()" style="flex: 1;">📥 匯入備份檔</button>
+                </div>
+                <input type="file" id="file-input" style="display: none;" accept=".json" onchange="importData(event)">
+            </div>
+            
+            <div class="card" style="border: 1px solid #fee2e2;">
+                <h3 style="color: var(--danger);">⚠️ 危險區域</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">此操作將永久刪除手機內所有的閱讀紀錄，且無法復原。</p>
+                <button class="btn-danger" onclick="clearAllData()">清除所有 App 資料</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <div class="nav-item active" onclick="switchPage('record', this)">
+            <span class="nav-item-icon">📝</span><span>紀錄書籍</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('recommend', this)">
+            <span class="nav-item-icon">📰</span><span>RSS 聯播</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('settings', this)">
+            <span class="nav-item-icon">⚙️</span><span>安全設定</span>
+        </div>
+    </div>
+
+    <script>
         // 初始化讀取 LocalStorage 資料
         let myBooks = JSON.parse(localStorage.getItem('myBooks')) || [];
 
@@ -345,3 +619,5 @@
         // 網頁載入時初始化渲染
         renderBooks();
     </script>
+</body>
+</html>
