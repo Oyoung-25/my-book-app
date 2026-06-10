@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的閱讀隨身本 v8.5-雲端圖譜直連版</title>
+    <title>我的閱讀隨身本 v8.6-防禦淨化完全體</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2b4c7e">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -88,11 +88,10 @@
     <header>我的閱讀隨身本</header>
 
     <div class="container">
-        <!-- 分頁一：紀錄 -->
         <div id="page-record" class="page active">
             <div class="card">
                 <h3>📝 新增看過的書</h3>
-                <input type="text" id="book-title" placeholder="請輸入精確的書名或漫畫名">
+                <input type="text" id="book-title" placeholder="請輸入書名或漫畫名">
                 <select id="book-category">
                     <option value="商管財經">📈 商管財經</option>
                     <option value="文學小說">📚 文學小說</option>
@@ -111,7 +110,6 @@
             <div id="book-list"></div>
         </div>
 
-        <!-- 分頁二：直連雲端推薦 -->
         <div id="page-recommend" class="page">
             <div class="card">
                 <h3>🌐 Google 雲端繁中圖譜即時推薦 (10本滿載)</h3>
@@ -119,7 +117,6 @@
             </div>
         </div>
 
-        <!-- 分頁三：設定 -->
         <div id="page-settings" class="page">
             <div class="card">
                 <h3>💾 資料安全與備份</h3>
@@ -195,7 +192,7 @@
             }).join('');
         }
 
-        // 🌟 100% 直連 Google 官方 API：輸入你真實看的書，即時識別作者與精準書名
+        // 直連 Google 官方 API：自動識別作者與精準書名
         async function addBookWithGoogle() {
             const titleInput = document.getElementById('book-title');
             const categorySelect = document.getElementById('book-category');
@@ -210,7 +207,6 @@
             let finalTitle = bookTitle;
 
             try {
-                // 直接呼叫官方 API，合法通行，絕不被瀏覽器 CORS 阻擋
                 const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1&langRestrict=zh-Hant`;
                 const res = await fetch(url);
                 if (res.ok) {
@@ -249,7 +245,7 @@
             }
         }
 
-        // 🌟 核心聯動：拿你輸入的「真實書名」作為火種，向雲端無限調閱關聯度最高的新書
+        // 智慧推薦核心（內嵌安全防禦淨化過濾器）
         async function fetchRecommendations() {
             const recommendDiv = document.getElementById('recommend-list');
             if (myBooks.length === 0) {
@@ -259,23 +255,35 @@
 
             recommendDiv.innerHTML = '<div class="loading">📡 全球直連技術啟動：正在調閱 Google 繁中百萬冊智慧書庫...</div>';
 
-            // 1. 類別統計
+            // 1. 統計最常閱讀的分類
             const counts = {};
             myBooks.forEach(book => { counts[book.category] = (counts[book.category] || 0) + 1; });
             const topCategory = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
 
-            // 2. 抓取你近期最常看或最後輸入的一本書作為「核心精準火種」
+            // 2. 獲取最後輸入的一本書作為火種
             const latestBook = myBooks[myBooks.length - 1];
             
-            // 複合搜尋詞：你輸入的真實書名 + 該分類的雲端熱門檢索詞，確保推薦跟你有高度交叉關聯！
-            const searchQuery = `${latestBook.title} ${googleSearchKeywords[topCategory]}`;
+            // 🛡️ 【自動網址淨化過濾器核心邏輯】
+            // A. 濾除可能導致 Google 400 錯誤的特殊符號
+            let cleanLatestTitle = latestBook.title
+                .replace(/[+\-#&?【】《》()（）!@$%^*]/g, ' ') 
+                .replace(/\s+/g, ' ')                        
+                .trim();
+
+            // B. 限制長度只取前 8 個字，防範關鍵字過長被防火牆阻擋
+            if (cleanLatestTitle.length > 8) {
+                cleanLatestTitle = cleanLatestTitle.substring(0, 8);
+            }
+
+            // C. 重新安全組合搜尋詞
+            const searchQuery = `${cleanLatestTitle} ${googleSearchKeywords[topCategory]}`;
             
             const alreadyRead = new Set(myBooks.map(b => b.title.toLowerCase().trim()));
             const seenTitles = new Set();
             let resultDisplay = [];
 
             try {
-                // 直連調閱 20 本最新、最相關的實體書
+                // 發射安全請求
                 const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&orderBy=relevance&maxResults=20&langRestrict=zh-Hant`;
                 const res = await fetch(url);
                 
@@ -288,7 +296,6 @@
                             if (title.length > 25) title = title.substring(0, 25) + '...';
                             const normTitle = title.toLowerCase().trim();
 
-                            // 排除已經看過的書名，防止重複推薦
                             if (!alreadyRead.has(normTitle) && !seenTitles.has(normTitle)) {
                                 seenTitles.add(normTitle);
                                 resultDisplay.push({
@@ -302,9 +309,9 @@
                         });
                     }
                 }
-            } catch (e) { console.error("雲端載入失敗", e); }
+            } catch (e) { console.error("雲端載入主線異常", e); }
 
-            // 終極備援：如果搜尋詞太過冷門導致 Google 吐不出東西，改用分類大詞盲搜補滿
+            // 備援方案：若搜尋結果不足 10 本，使用大類別詞盲搜補滿
             if (resultDisplay.length < 10) {
                 try {
                     const fallbackUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(googleSearchKeywords[topCategory])}&orderBy=newest&maxResults=15&langRestrict=zh-Hant`;
@@ -333,19 +340,19 @@
                 } catch(e){}
             }
 
-            // 洗牌打亂，取出 10 本，創造源源不絕的動態感
+            // 隨機洗牌抽 10 本呈現
             const finalList = resultDisplay.sort(() => Math.random() - 0.5).slice(0, 10);
             const currentIcon = categoryIcons[topCategory] || "💡";
 
             if (finalList.length === 0) {
-                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">📴 網路連線中斷，請確認您的電腦網路狀態。</p>';
+                recommendDiv.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">📴 雲端回應空值，請嘗試新增其他書名以重新建立火種。</p>';
                 return;
             }
 
             let html = `
                 <div style="margin-bottom:15px; font-size:0.92rem; color:var(--text); background: var(--primary-light); padding: 14px; border-radius: 8px; border-left: 4px solid var(--success);">
-                    📡 <b>Google 雲端矩陣對焦成功：</b><br>
-                    系統已將您輸入的真實書籍《<b>${latestBook.title}</b>》作為火種，即時向下挖掘並大洗牌出以下 10 本與您品味強烈關聯的繁中世界實時新書：
+                    📡 <b>Google 雲端矩陣對焦成功（安全淨化版）：</b><br>
+                    已成功為《<b>${cleanLatestTitle}</b>》清除潛在符號衝突。依據您的 ${currentIcon} <b>${topCategory}</b> 閱讀品味，即時挖掘出以下 10 本最新關聯書籍：
                 </div>
             `;
 
@@ -371,7 +378,7 @@
             recommendDiv.innerHTML = html;
         }
 
-        // 備份功能維持
+        // 備份還原安全模組
         function exportData() {
             if (myBooks.length === 0) { alert('目前沒有資料可以匯出喔！'); return; }
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(myBooks));
