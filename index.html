@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的閱讀隨身本 v12-Vercel全端架構版</title>
+    <title>我的閱讀隨身本 v13-跨域全端綁定版</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2b4c7e">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -102,6 +102,9 @@
     <script>
         let myBooks = JSON.parse(localStorage.getItem('myBooks')) || [];
 
+        // 🚨 你的專屬 Vercel 後端絕對網址已綁定
+        const BACKEND_URL = "https://my-book-app-gamma.vercel.app"; 
+
         const googleSearchKeywords = {
             "商管財經": "商業 理財 趨勢", "文學小說": "小說 台灣文學", "心理勵志": "心理 成長", "電機資訊": "電腦 資訊 電機 工程",
             "運動健身": "運動 跑步 訓練", "人文歷史": "歷史 人文", "語言學習": "語言 台灣話", "戶外休閒": "登山 戶外 百岳", "漫畫專區": "漫畫 動漫 金漫獎"
@@ -137,7 +140,7 @@
         }
 
         // ==========================================
-        // 🚀 核心一：呼叫自家 Vercel 後端查詢作者
+        // 🚀 核心一：絕對網址綁定！呼叫自家 Vercel 後端查詢作者
         // ==========================================
         async function addBookWithServer() {
             const titleInput = document.getElementById('book-title');
@@ -153,8 +156,8 @@
             let finalTitle = bookTitle;
 
             try {
-                // ⚡ 關鍵：呼叫 Vercel 後端 API
-                const res = await fetch(`/api/books?q=${encodeURIComponent(bookTitle)}&maxResults=1`);
+                // ⚡ 呼叫你的專屬 Vercel 後端
+                const res = await fetch(`${BACKEND_URL}/api/books?q=${encodeURIComponent(bookTitle)}&maxResults=1`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.items && data.items[0]) {
@@ -162,6 +165,8 @@
                         finalTitle = info.title || bookTitle;
                         detectedAuthor = info.authors ? info.authors.join(', ') : "指標作家";
                     }
+                } else {
+                    console.error("伺服器回傳錯誤代碼:", res.status);
                 }
             } catch (e) { console.error("後端連線異常", e); }
 
@@ -182,7 +187,7 @@
         }
 
         // ==========================================
-        // 🚀 核心二：呼叫自家 Vercel 後端獲取推薦
+        // 🚀 核心二：絕對網址綁定！呼叫自家 Vercel 後端獲取推薦
         // ==========================================
         async function fetchRecommendations() {
             const recommendDiv = document.getElementById('recommend-list');
@@ -198,7 +203,6 @@
             const topCategory = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
             const latestBook = myBooks[myBooks.length - 1];
             
-            // 淨化書名
             let cleanLatestTitle = latestBook.title.replace(/[+\-#&?【】《》()（）!@$%^*]/g, ' ').replace(/\s+/g, ' ').trim();
             if (cleanLatestTitle.length > 10) cleanLatestTitle = cleanLatestTitle.substring(0, 10);
 
@@ -210,14 +214,14 @@
             let isFallback = false;
 
             try {
-                // ⚡ 關鍵：主線搜尋呼叫自家後端
-                let res = await fetch(`/api/books?q=${encodeURIComponent(searchQuery)}&maxResults=20`);
+                // ⚡ 主線搜尋呼叫自家後端
+                let res = await fetch(`${BACKEND_URL}/api/books?q=${encodeURIComponent(searchQuery)}&maxResults=20`);
                 let data = await res.json();
 
-                // 盲搜防護網：如果找不到書，自動觸發備用大類別搜尋
+                // 盲搜防護網
                 if (!data.items || data.items.length < 5) {
                     isFallback = true;
-                    res = await fetch(`/api/books?q=${encodeURIComponent(googleSearchKeywords[topCategory])}&maxResults=20`);
+                    res = await fetch(`${BACKEND_URL}/api/books?q=${encodeURIComponent(googleSearchKeywords[topCategory])}&maxResults=20`);
                     data = await res.json();
                 }
 
@@ -271,7 +275,6 @@
             recommendDiv.innerHTML = html;
         }
 
-        // 備份模組
         function exportData() {
             if (myBooks.length === 0) { alert('目前沒有資料！'); return; }
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(myBooks));
